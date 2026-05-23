@@ -1,0 +1,107 @@
+name: OMA Health Check
+
+# Static validation only — no LLM calls, $0 forever.
+# Covers Phase 9 quality eval + JSON schema validation that caught the
+# 2026-05-22 oma link bug (`.agents/hooks/variants/codex.json`).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  static-validate:
+    name: SKILL.md per-skill semantic validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run static-validate.ts on all skills
+        run: |
+          # Patch the hardcoded Windows path so the script runs on Linux too.
+          sed -i 's|C:/Users/user/AI_Orchestra_Lab/projects/.agents/skills|.agents/skills|g' oma-eval/static-validate.ts
+          bun run oma-eval/static-validate.ts --json | tee static-validate-results.json
+        shell: bash
+
+      - name: Upload static-validate results
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-validate-results
+          path: static-validate-results.json
+          retention-days: 30
+
+  promptfoo-eval:
+    name: promptfoo schema eval (5 core skills)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install promptfoo
+        run: npm install -g promptfoo@latest
+
+      - name: Run promptfoo eval
+        working-directory: oma-eval
+        run: promptfoo eval -c promptfooconfig.yaml --no-cache -o results.json
+        shell: bash
+
+      - name: Upload promptfoo results
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptfoo-results
+          path: oma-eval/results.json
+          retention-days: 30
+
+  vendor-json-validate:
+    name: Hook variants JSON validity (anti-regression for oma link)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Validate every JSON under .agents/hooks/variants/
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in .agents/hooks/variants/*.json; do
+            if bun -e "JSON.parse(require('fs').readFileSync('$f','utf-8'))" 2>err.log; then
+              echo "ok   $f"
+            else
+              echo "FAIL $f"
+              cat err.log
+              fail=1
+            fi
+            rm -f err.log
+          done
+          # Also validate every JSON under .claude/, .codex/, .gemini/, .qwen/, .cursor/
+          for f in .claude/*.json .codex/*.json .gemini/*.json .qwen/*.json .cursor/*.json .agents/*.json; do
+            [ -f "$f" ] || continue
+            if bun -e "JSON.parse(require('fs').readFileSync('$f','utf-8'))" 2>err.log; then
+              echo "ok   $f"
+            else
+              echo "FAIL $f"
+              cat err.log
+              fail=1
+            fi
+            rm -f err.log
+          done
+          exit $fail
+        shell: bash
