@@ -1,0 +1,32 @@
+services:
+  todo-app:
+    build: .
+    container_name: oma-test-todo
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src:ro
+      - ./docs:/app/docs:ro
+      - ./infra:/app/infra:ro
+    environment:
+      - NODE_ENV=test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/todos"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  test-runner:
+    build: .
+    container_name: oma-test-runner
+    depends_on:
+      todo-app:
+        condition: service_healthy
+    volumes:
+      - ./test-runner.sh:/app/test-runner.sh:ro
+      - ./results:/app/results
+    environment:
+      - API_URL=http://todo-app:3000
+      - NODE_ENV=test
+    entrypoint: ["/bin/bash", "/app/test-runner.sh"]

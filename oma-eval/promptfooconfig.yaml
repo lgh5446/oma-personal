@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+#
+# OMA SSOT static quality evaluation
+#
+# Why: per plan Phase 9 + global rules §7·§10, OMA's output must pass
+# independent quality verification (score ≥ 0.85). This config performs
+# **static** checks on the 5 core SKILL.md files using promptfoo's echo
+# provider (no LLM calls, $0 cost). Companion: oma-eval/static-validate.ts
+# extends checks to all 31 skills with stricter assertions.
+#
+# Run:
+#   cd oma-eval
+#   promptfoo eval -c promptfooconfig.yaml --no-cache -o results.json
+#
+# Pass threshold: score ≥ 0.85 (per global rules §10-2).
+# No new API keys configured — echo provider runs entirely offline.
+
+description: "OMA SSOT static quality — 5 core SKILL.md frontmatter + structure"
+
+providers:
+  - id: echo
+    label: "echo (no-LLM static check)"
+
+prompts:
+  - id: skill-oma-architecture
+    label: "oma-architecture SKILL.md"
+    raw: file://../.agents/skills/oma-architecture/SKILL.md
+  - id: skill-oma-backend
+    label: "oma-backend SKILL.md"
+    raw: file://../.agents/skills/oma-backend/SKILL.md
+  - id: skill-oma-qa
+    label: "oma-qa SKILL.md"
+    raw: file://../.agents/skills/oma-qa/SKILL.md
+  - id: skill-oma-orchestrator
+    label: "oma-orchestrator SKILL.md"
+    raw: file://../.agents/skills/oma-orchestrator/SKILL.md
+  - id: skill-oma-search
+    label: "oma-search SKILL.md"
+    raw: file://../.agents/skills/oma-search/SKILL.md
+
+defaultTest:
+  assert:
+    - type: regex
+      value: "^---"
+    - type: regex
+      value: "(?:^|\\n)name:\\s+oma-[a-z-]+"
+    - type: regex
+      value: "(?:^|\\n)description:"
+    - type: javascript
+      value: "output.length >= 500"
+    - type: javascript
+      value: |
+        if (!output.includes('Gemini')) return true;
+        return output.includes('Antigravity') || output.includes('deprecated');
+    - type: contains
+      value: "---"
+
+# Single test stanza — promptfoo applies tests as a cartesian product over
+# prompts × tests. To avoid mis-pairing (each skill against another skill's
+# keyword check), we use ONE shared test stanza here. Per-skill semantic
+# keyword checks live in `oma-eval/static-validate.ts` (bun script).
+tests:
+  - description: "Every core SKILL.md identifies itself with a valid oma-* name"
+    assert:
+      - type: javascript
+        value: |
+          const validIds = ['oma-architecture','oma-backend','oma-qa','oma-orchestrator','oma-search'];
+          return validIds.some(id => output.includes(`name: ${id}`));

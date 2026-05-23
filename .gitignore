@@ -1,0 +1,50 @@
+# =============================================================================
+# OMA Personal repo (oma-personal) — .gitignore
+# Created 2026-05-23 in Phase 10
+# =============================================================================
+
+# Serena MCP local memory (per-machine, transient)
+.serena/
+**/.serena/
+
+# Test / scratch workspaces (local-only)
+oma-3vendor-live-test/
+oma-derived-test-*/
+
+# User personal projects (kept private even within this private repo)
+sample-rights-analysis/
+
+# Empty Korean placeholder folders
+감정평가사/
+공인중개사/
+
+# OMA upgrade backups (rotating, large, local-only)
+backups/
+
+# Node / Bun
+node_modules/
+*.log
+*.tsbuildinfo
+
+# OS / IDE temp
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Local environment files (defense in depth — there are none today)
+.env
+.env.local
+.env.*.local
+
+# Promptfoo eval intermediate output (regenerated on each run)
+oma-eval/results.json
+oma-eval/.promptfoo/
+oma-eval/output.html
+
+# OMA agent results from local spawns (machine-specific session traces)
+**/.agents/results/result-*-session-*.md
+
+# Debug scratch files
+agy_debug.txt
+*_debug.txt

@@ -1,0 +1,14 @@
+{
+  "name": "oma-integration-test",
+  "version": "1.0.0",
+  "description": "OMA 3-vendor orchestration integration test project",
+  "main": "src/backend/server.js",
+  "scripts": {
+    "start": "node src/backend/server.js",
+    "dev": "node --watch src/backend/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.21.0"
+  }
+}

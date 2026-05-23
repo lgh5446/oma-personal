@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-05-21T15:34:03+00:00",
+  "total": 8,
+  "passed": 5,
+  "failed": 3,
+  "bugs_detected": 3,
+  "bugs_list": [
+    "No input validation (empty title accepted)",
+    "No XSS sanitization (script tags accepted)",
+    "No CORS headers (cors middleware missing)"
+  ]
+}
