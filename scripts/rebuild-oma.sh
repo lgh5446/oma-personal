@@ -21,17 +21,29 @@
 set -euo pipefail
 
 SRC="C:/Users/user/AI_Orchestra_Lab/core_system/oh-my-agent"
-GLOBAL_CLI="C:/Users/user/.bun/install/global/node_modules/oh-my-agent/bin/cli.js"
+GLOBAL_BUN="C:/Users/user/.bun/install/global/node_modules/oh-my-agent/bin/cli.js"
+GLOBAL_NPM="C:/Users/user/AppData/Roaming/npm/node_modules/oh-my-agent/bin/cli.js"
 
 echo "[1/4] Building OMA from $SRC"
 cd "$SRC"
 bun run build | tail -5
 
-echo "[2/4] Deploying to global install"
-cp "cli/bin/cli.js" "$GLOBAL_CLI"
+echo "[2/4] Deploying to global installs (Bun & NPM)"
+if [ -d "$(dirname "$GLOBAL_BUN")" ]; then
+  cp "cli/bin/cli.js" "$GLOBAL_BUN"
+  echo "Deployed to Bun global OMA"
+fi
+if [ -d "$(dirname "$GLOBAL_NPM")" ]; then
+  cp "cli/bin/cli.js" "$GLOBAL_NPM"
+  echo "Deployed to NPM global OMA"
+fi
 
 echo "[3/4] Verifying new global SHA256"
-sha256sum "$GLOBAL_CLI"
+if [ -f "$GLOBAL_NPM" ]; then
+  sha256sum "$GLOBAL_NPM"
+elif [ -f "$GLOBAL_BUN" ]; then
+  sha256sum "$GLOBAL_BUN"
+fi
 
 echo "[4/4] Confirming oma --version"
 oma --version
