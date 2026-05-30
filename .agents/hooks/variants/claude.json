@@ -8,6 +8,10 @@
   "events": {
     "UserPromptSubmit": [
       {
+        "hook": "verify-oma-cli.ts",
+        "timeout": 10
+      },
+      {
         "hook": "keyword-detector.ts",
         "timeout": 5
       },
