@@ -30,12 +30,20 @@ bun run build | tail -5
 
 echo "[2/4] Deploying to global installs (Bun & NPM)"
 if [ -d "$(dirname "$GLOBAL_BUN")" ]; then
-  cp "cli/bin/cli.js" "$GLOBAL_BUN"
-  echo "Deployed to Bun global OMA"
+  if [ "cli/bin/cli.js" -ef "$GLOBAL_BUN" ]; then
+    echo "Bun global OMA is junctioned to local source. No copy needed."
+  else
+    cp "cli/bin/cli.js" "$GLOBAL_BUN"
+    echo "Deployed to Bun global OMA"
+  fi
 fi
 if [ -d "$(dirname "$GLOBAL_NPM")" ]; then
-  cp "cli/bin/cli.js" "$GLOBAL_NPM"
-  echo "Deployed to NPM global OMA"
+  if [ "cli/bin/cli.js" -ef "$GLOBAL_NPM" ]; then
+    echo "NPM global OMA is junctioned to local source. No copy needed."
+  else
+    cp "cli/bin/cli.js" "$GLOBAL_NPM"
+    echo "Deployed to NPM global OMA"
+  fi
 fi
 
 echo "[3/4] Verifying new global SHA256"
