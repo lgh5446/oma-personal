@@ -16,10 +16,8 @@ export default async function beforeAgent() {
     // Run dummy command to trigger validator check
     execSync("oma verify docs --json", { encoding: "utf-8", stdio: "pipe" });
   } catch (err: any) {
-    const errorStr = String(err.stdout || err.stderr || err.message || "");
-    if (errorStr.includes("Invalid agent type: docs") || errorStr.includes("must be one of")) {
-      needsRebuild = true;
-    }
+    // Any error during 'oma verify docs' means the CLI is broken, missing support, or corrupted.
+    needsRebuild = true;
   }
 
   if (needsRebuild) {
