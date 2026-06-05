@@ -8,11 +8,11 @@
   "events": {
     "UserPromptSubmit": [
       {
-        "hook": "verify-oma-cli.ts",
-        "timeout": 10
+        "hook": "keyword-detector.ts",
+        "timeout": 5
       },
       {
-        "hook": "keyword-detector.ts",
+        "hook": "state-boundary.ts",
         "timeout": 5
       },
       {
@@ -20,6 +20,11 @@
         "timeout": 3
       }
     ],
+    "PreToolUse": {
+      "hook": "test-filter.ts",
+      "matcher": "Bash",
+      "timeout": 5
+    },
     "Stop": {
       "hook": "persistent-mode.ts",
       "timeout": 5

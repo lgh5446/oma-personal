@@ -21,6 +21,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
+import {
+  agyConversationId,
+  agyProjectDir,
+  isAgyInput,
+  readAgyPrompt,
+} from "./agy-input.ts";
 import { VENDORS } from "./constants.ts";
 import { resolveGitRoot } from "./fs-utils.ts";
 import { makePromptOutput } from "./hook-output.ts";
@@ -123,8 +129,11 @@ export function shouldSkipAllWorkflows(text: string): boolean {
 // Hook event names that represent genuine user input (not agent responses)
 const VALID_USER_EVENTS = new Set([
   "UserPromptSubmit",
+  "user_prompt_submit", // Grok
+  "userPromptSubmit", // Kiro
   "beforeSubmitPrompt", // Cursor
   "BeforeAgent", // Gemini (fires before agent processes user prompt)
+  "PreInvocation", // Antigravity CLI (agy)
 ]);
 
 /**
@@ -255,18 +264,45 @@ export function recordKwTrigger(
 
 function inferVendorFromScriptPath(): Vendor | null {
   const path = import.meta.filename;
+  if (path.includes(`${join(".gemini", "antigravity-cli", "hooks")}`))
+    return "antigravity";
   if (path.includes(`${join(".cursor", "hooks")}`)) return "cursor";
   if (path.includes(`${join(".qwen", "hooks")}`)) return "qwen";
   if (path.includes(`${join(".claude", "hooks")}`)) return "claude";
   if (path.includes(`${join(".gemini", "hooks")}`)) return "gemini";
   if (path.includes(`${join(".codex", "hooks")}`)) return "codex";
+  if (path.includes(`${join(".grok", "hooks")}`)) return "grok";
+  if (path.includes(`${join(".kiro", "hooks")}`)) return "kiro";
+  // pi auto-loads the bridge from `.pi/extensions/oma/`; the core scripts are
+  // copied alongside it and spawned as subprocesses from there.
+  if (path.includes(`${join(".pi", "extensions")}`)) return "pi";
   return null;
 }
 
 function detectVendor(input: Record<string, unknown>): Vendor {
   const event = input.hook_event_name as string | undefined;
+  const hookEventName = input.hookEventName as string | undefined;
   const byScriptPath = inferVendorFromScriptPath();
   if (byScriptPath) return byScriptPath;
+
+  // agy (Antigravity) sends no hook_event_name; detect by its stdin shape.
+  if (isAgyInput(input)) return "antigravity";
+
+  // Grok uses hookEventName (e.g. "user_prompt_submit") + GROK_* env vars
+  if (process.env.GROK_WORKSPACE_ROOT || hookEventName?.includes("prompt")) {
+    // Prefer explicit grok signal; fall through to other checks only if ambiguous
+    if (process.env.GROK_WORKSPACE_ROOT) return "grok";
+  }
+
+  if (
+    process.env.KIRO_PROJECT_DIR ||
+    event === "userPromptSubmit" ||
+    hookEventName === "userPromptSubmit"
+  ) {
+    return "kiro";
+  }
+
+  if (event === "PreInvocation") return "antigravity";
   if (event === "BeforeAgent") return "gemini";
   if (event === "beforeSubmitPrompt") return "cursor";
   if (event === "UserPromptSubmit") {
@@ -288,8 +324,27 @@ function getProjectDir(vendor: Vendor, input: Record<string, unknown>): string {
     case "gemini":
       dir = process.env.GEMINI_PROJECT_DIR || process.cwd();
       break;
+    case "antigravity":
+      dir =
+        agyProjectDir(input) ||
+        (input.cwd as string) ||
+        process.env.ANTIGRAVITY_PROJECT_DIR ||
+        process.env.AGY_PROJECT_DIR ||
+        process.env.GEMINI_PROJECT_DIR ||
+        process.cwd();
+      break;
     case "qwen":
       dir = process.env.QWEN_PROJECT_DIR || process.cwd();
+      break;
+    case "grok":
+      dir =
+        process.env.GROK_WORKSPACE_ROOT ||
+        (input.cwd as string) ||
+        process.cwd();
+      break;
+    case "kiro":
+      dir =
+        process.env.KIRO_PROJECT_DIR || (input.cwd as string) || process.cwd();
       break;
     default:
       dir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
@@ -300,7 +355,10 @@ function getProjectDir(vendor: Vendor, input: Record<string, unknown>): string {
 
 function getSessionId(input: Record<string, unknown>): string {
   return (
-    (input.sessionId as string) || (input.session_id as string) || "unknown"
+    (input.sessionId as string) ||
+    (input.session_id as string) ||
+    agyConversationId(input) ||
+    "unknown"
   );
 }
 
@@ -607,6 +665,35 @@ function activateMode(
   );
 }
 
+async function activateL1WorkflowSession(
+  projectDir: string,
+  workflow: string,
+  vendor: string,
+  vendorSid: string,
+  category = "main",
+): Promise<string | null> {
+  try {
+    const [{ setActiveSession }, { createEventId, emitEvent }] =
+      await Promise.all([
+        import("./state-marker.ts"),
+        import("./state-emit.ts"),
+      ]);
+    const sid = `oma-${createEventId()}`;
+    setActiveSession(projectDir, category, sid);
+    await emitEvent(projectDir, sid, {
+      kind: "session.created",
+      vendor,
+      vendorSid,
+      payload: { workflow, category },
+    });
+    return sid;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    process.stderr.write(`[oma] L1 session activation failed: ${msg}\n`);
+    return null;
+  }
+}
+
 // ── Deactivation Detection ───────────────────────────────────
 
 export const DEACTIVATION_PHRASES: Record<string, string[]> = {
@@ -674,7 +761,17 @@ async function main() {
   const vendor = detectVendor(input);
   const projectDir = getProjectDir(vendor, input);
   const sessionId = getSessionId(input);
-  const prompt = (input.prompt as string) ?? "";
+  let prompt = (input.prompt as string) ?? "";
+
+  // agy's PreInvocation stdin carries no `prompt` — recover the user request
+  // from the transcript. PreInvocation fires before every model call, so only
+  // act on the first invocation of a turn (invocationNum) to avoid re-running
+  // keyword detection mid-turn.
+  if (vendor === "antigravity" && !prompt) {
+    const invocationNum = input.invocationNum;
+    if (typeof invocationNum === "number" && invocationNum > 1) process.exit(0);
+    prompt = readAgyPrompt(input.transcriptPath);
+  }
 
   if (!prompt.trim()) process.exit(0);
   if (startsWithSlashCommand(prompt)) process.exit(0);
@@ -739,6 +836,7 @@ async function main() {
       if (def.persistent) {
         activateMode(projectDir, workflow, sessionId);
       }
+      await activateL1WorkflowSession(projectDir, workflow, vendor, sessionId);
       // Record this trigger for reinforcement tracking
       const updatedState = recordKwTrigger(kwState, workflow);
       saveKwState(projectDir, updatedState);

@@ -83,10 +83,20 @@ interface StatuslineStdin {
     five_hour?: RateLimit;
     seven_day?: RateLimit;
   };
-  // agy-only fields (Antigravity hides $cost / rate-limits from StatusLine).
+  // agy StatusLine fields (snake_case; Antigravity hides $cost / rate-limits).
+  // Schema: antigravity.google StatusLine "Available JSON fields".
   agent_state?: string;
-  sandbox?: { enabled?: boolean };
+  sandbox?: { enabled?: boolean; allow_network?: boolean };
   product?: string;
+  conversation_id?: string;
+  workspace?: { current_dir?: string; project_dir?: string };
+  vcs?: { type?: string; branch?: string; client?: string; dirty?: boolean };
+  agent?: { name?: string };
+  subagents?: Array<{ name?: string; role?: string; status?: string }>;
+  background_tasks?: Array<{ name?: string; status?: string; index?: number }>;
+  pending_input_count?: number;
+  tool_confirmation_pending?: boolean;
+  terminal_width?: number;
 }
 
 interface GeminiHookInput {
@@ -284,7 +294,10 @@ export function buildGeminiBar(
 
 export function buildClaudeStatusline(input: StatuslineStdin): string {
   const projectDir =
-    process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();
+    process.env.CLAUDE_PROJECT_DIR ||
+    input.cwd ||
+    input.workspace?.current_dir ||
+    process.cwd();
   const parts: string[] = [];
 
   // 1. OMA label
@@ -300,27 +313,20 @@ export function buildClaudeStatusline(input: StatuslineStdin): string {
     parts.push(colorByThreshold(ctxPct, `ctx:${Math.round(ctxPct)}%`));
   }
 
-  // 4. Tokens (agy exposes these; Claude does not).
-  const inTok = input.context_window?.total_input_tokens ?? 0;
-  const outTok = input.context_window?.total_output_tokens ?? 0;
-  if (inTok > 0 || outTok > 0) {
-    parts.push(dim(`tok:${formatTokens(inTok)}↑${formatTokens(outTok)}↓`));
-  }
-
-  // 5. Session cost (Claude)
+  // 4. Session cost (Claude)
   const cost = input.cost?.total_cost_usd;
   if (cost != null && cost > 0) {
     parts.push(dim(`$${cost.toFixed(2)}`));
   }
 
-  // 6. Rate limits (Claude)
+  // 5. Rate limits (Claude)
   const rl5 = formatRateLimit("5h", input.rate_limits?.five_hour);
   const rl7 = formatRateLimit("7d", input.rate_limits?.seven_day);
   if (rl5 || rl7) {
     parts.push([rl5, rl7].filter(Boolean).join(dim(" ")));
   }
 
-  // 7. Lines changed (vendor-provided only; agy doesn't track this and we
+  // 6. Lines changed (vendor-provided only; agy doesn't track this and we
   //    intentionally don't synthesize from git — keep what the vendor knows).
   const added = input.cost?.total_lines_added;
   const removed = input.cost?.total_lines_removed;
@@ -331,18 +337,48 @@ export function buildClaudeStatusline(input: StatuslineStdin): string {
     parts.push(diffParts.join(dim("/")));
   }
 
-  // 8. agy-only: surface non-idle agent state and sandbox flag.
+  // 7. agy StatusLine signals (presence-guarded; Claude payloads omit these).
+  //    git branch (+dirty marker), live agent state, active subagents,
+  //    background tasks, queued inputs, and a pending tool-confirmation flag.
+  if (input.vcs?.branch) {
+    parts.push(dim(`⎇ ${input.vcs.branch}${input.vcs.dirty ? "*" : ""}`));
+  }
   if (input.agent_state && input.agent_state !== "idle") {
     parts.push(yellow(input.agent_state));
+  }
+  const subagentCount = input.subagents?.length ?? 0;
+  if (subagentCount > 0) {
+    parts.push(cyan(`subagents:${subagentCount}`));
+  }
+  const backgroundCount = input.background_tasks?.length ?? 0;
+  if (backgroundCount > 0) {
+    parts.push(yellow(`bg:${backgroundCount}`));
+  }
+  if (
+    typeof input.pending_input_count === "number" &&
+    input.pending_input_count > 0
+  ) {
+    parts.push(dim(`queue:${input.pending_input_count}`));
+  }
+  if (input.tool_confirmation_pending) {
+    parts.push(yellow("confirm?"));
   }
   if (input.sandbox?.enabled) {
     parts.push(dim("sandbox"));
   }
 
-  // 9. Active workflow
+  // 8. Active workflow
   const workflow = getActiveWorkflow(projectDir);
   if (workflow) {
     parts.push(yellow(`${workflow.workflow}:${workflow.reinforcementCount}`));
+  }
+
+  // 9. Tokens (agy exposes these; Claude usually does not). Keep this last
+  // because the token string is visually noisy and mostly informational.
+  const inTok = input.context_window?.total_input_tokens ?? 0;
+  const outTok = input.context_window?.total_output_tokens ?? 0;
+  if (inTok > 0 || outTok > 0) {
+    parts.push(dim(`tok:${formatTokens(inTok)}↑${formatTokens(outTok)}↓`));
   }
 
   return parts.join(dim(" │ "));

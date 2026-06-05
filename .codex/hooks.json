@@ -6,13 +6,19 @@
           {
             "name": "keyword-detector",
             "type": "command",
-            "command": "bun .codex/hooks/keyword-detector.ts",
+            "command": "bun C:\\Users\\user\\AI_Orchestra_Lab\\projects\\.codex\\hooks\\keyword-detector.ts",
+            "timeout": 5
+          },
+          {
+            "name": "state-boundary",
+            "type": "command",
+            "command": "bun C:\\Users\\user\\AI_Orchestra_Lab\\projects\\.codex\\hooks\\state-boundary.ts",
             "timeout": 5
           },
           {
             "name": "skill-injector",
             "type": "command",
-            "command": "bun .codex/hooks/skill-injector.ts",
+            "command": "bun C:\\Users\\user\\AI_Orchestra_Lab\\projects\\.codex\\hooks\\skill-injector.ts",
             "timeout": 3
           }
         ]
@@ -24,10 +30,33 @@
           {
             "name": "persistent-mode",
             "type": "command",
-            "command": "bun .codex/hooks/persistent-mode.ts",
+            "command": "bun C:\\Users\\user\\AI_Orchestra_Lab\\projects\\.codex\\hooks\\persistent-mode.ts",
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "name": "skill-usage-audit",
+            "type": "command",
+            "command": "bun C:\\Users\\user\\AI_Orchestra_Lab\\projects\\.codex\\hooks\\skill-usage-audit.ts",
+            "timeout": 8
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "name": "test-filter",
+            "type": "command",
+            "command": "bun C:\\Users\\user\\AI_Orchestra_Lab\\projects\\.codex\\hooks\\test-filter.ts",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Bash"
       }
     ]
   }
