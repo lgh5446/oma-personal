@@ -15,8 +15,8 @@ Important:
 
 1. **Claude Code**: Your system prompt contains "You are Claude Code" OR the `Agent` tool is available
 2. **Codex CLI**: Your system prompt contains "Codex CLI" OR the `apply_patch` tool is available
-3. **Antigravity (Google)**: This file was auto-loaded from `.agents/skills/` while running inside the `antigravity chat` panel. Antigravity replaces the deprecated Gemini CLI as of 2026-05.
-4. **Gemini CLI (deprecated)**: Same load condition as Antigravity AND `@` subagent syntax is available. Treat as legacy — prefer migrating to Antigravity.
+3. **Gemini CLI**: This file was auto-loaded from `.agents/skills/` AND `@` subagent syntax is available
+4. **Antigravity IDE**: This file was auto-loaded from `.agents/skills/` AND no `@` subagent syntax
 5. **CLI Fallback**: None of the above matched → use `oma agent:spawn`
 
 ## Vendor-Specific Spawn Methods
@@ -25,8 +25,8 @@ Important:
 |:---|:---|:---|
 | Claude Code | `Agent` tool with `.claude/agents/{name}.md` | Synchronous return |
 | Codex CLI | Native custom agents in `.codex/agents/{name}.toml` via `codex exec "@agent ..."` when available, otherwise `oma agent:spawn` | JSON output |
-| Antigravity (Google) | Interactive `antigravity chat` panel with the oh-my-agent plugin under `~/.gemini/antigravity-cli/plugins/oh-my-agent/`. Reuses `.gemini/agents/{name}.md` definitions. **`oma agent:spawn -m antigravity` is explicitly rejected** (headless mode unsupported). | Plugin slash commands or `/agents` panel |
-| Gemini CLI (deprecated) | `.gemini/agents/{name}.md` native subagents via `gemini -p "@agent ..."` when available, otherwise `oma agent:spawn` | JSON output or MCP memory poll |
+| Gemini CLI | `.gemini/agents/{name}.md` native subagents via `gemini -p "@agent ..."` when available, otherwise `oma agent:spawn` | JSON output or MCP memory poll |
+| Antigravity | Prefer `oma agent:spawn` unless a native role-subagent path is explicitly verified for the target vendor | MCP memory poll |
 | CLI Fallback | `oma agent:spawn {agent} {prompt} {session} -w {workspace}` | Result file poll |
 
 ## Dispatch Rule
@@ -36,12 +36,11 @@ For each agent:
 1. Resolve `target_vendor_for_agent` from config
 2. If `target_vendor_for_agent === current_runtime_vendor` and that runtime has a verified native role-subagent path for that vendor, use the vendor variant agent definition
 3. Otherwise, use `oma agent:spawn`
-4. **Special case — Antigravity target**: Since headless spawn is unsupported, route the work back to the user with a clear instruction to open `antigravity chat` and run the corresponding `/agent` slash command. Do not silently fall through to `oma agent:spawn -m antigravity` (it will error).
 
 Example:
 - Runtime: Claude Code
-- Mapping: `frontend: claude`, `backend: claude`, `qa: antigravity`
+- Mapping: `frontend: claude`, `backend: claude`, `qa: gemini`
 - Result:
-  - `frontend` -> native Claude subagent (Agent tool)
-  - `backend` -> native Claude subagent (Agent tool)
-  - `qa` -> instruct the user to run `/qa-reviewer` inside `antigravity chat` (headless spawn unsupported)
+  - `frontend` -> native Claude subagent
+  - `backend` -> native Claude subagent
+  - `qa` -> external Gemini spawn

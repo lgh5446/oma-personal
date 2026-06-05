@@ -1,6 +1,7 @@
 ---
 name: orchestrate
-description: Automated CLI-based parallel agent execution that spawns subagents across Claude / Codex / Antigravity (Google), coordinates through MCP Memory, monitors progress, and runs verification
+description: Automated CLI-based parallel agent execution that spawns subagents via Gemini CLI, coordinates through MCP Memory, monitors progress, and runs verification
+disable-model-invocation: true
 ---
 <!-- oma:generated -->
 

@@ -19,7 +19,7 @@ Generate images and visual assets through authenticated multi-vendor routing whi
 
 - Generating images, visual assets, illustrations, product photos, concept art
 - Comparing output between multiple image models for the same prompt
-- Producing images from prompts within editor workflows (Claude Code, Codex, Antigravity, or deprecated Gemini CLI)
+- Producing images from prompts within editor workflows (Claude Code, Codex, Gemini CLI)
 - Other skills needing image generation infrastructure (shared invocation)
 
 ### When NOT to use

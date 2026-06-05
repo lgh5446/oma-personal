@@ -3,27 +3,17 @@
 
 # Default CLI vendor (used as fallback when oma-config.yaml is not configured)
 # For per-agent CLI mapping, see: .agents/oma-config.yaml
-#
-# NOTE (2026-05-22): Antigravity is Google's replacement for the deprecated
-# Gemini CLI. Antigravity reuses the `.gemini/agents/` folder for compatibility
-# but is invoked via the `antigravity` command. Set `active_vendor: gemini` here
-# only if you are intentionally targeting the deprecated Gemini CLI.
 active_vendor: antigravity
 
 # Vendor configurations
 vendors:
   antigravity:
-    command: antigravity
-    subcommand: chat
-    prompt_flag: none
-    # Antigravity does not support headless JSON subprocess mode.
-    # Use `antigravity chat` interactively with the oh-my-agent plugin instead.
-    # Reference: oma agent:spawn -m antigravity returns an explicit error.
-    isolation_method: "interactive"
+    command: agy
+    prompt_flag: "-p"
+    auto_approve_flag: "--dangerously-skip-permissions"
+    isolation_method: "flags"
 
   gemini:
-    # DEPRECATED: Replaced by Antigravity as of 2026-05.
-    # Kept only for users still relying on the legacy Gemini CLI.
     command: gemini
     prompt_flag: "-p"
     output_format_flag: "--output-format"
@@ -32,7 +22,9 @@ vendors:
     model_flag: "-m"
     default_model: "auto"
     include_dirs_flag: "--include-directories"
+    # JSON output parsing
     response_jq: ".response"
+    # Isolation: gemini uses current directory context
     isolation_method: "directory"
 
   claude:
@@ -43,6 +35,7 @@ vendors:
     auto_approve_flag: "--dangerously-skip-permissions"
     model_flag: "--model"
     default_model: "sonnet"
+    # JSON output parsing
     response_jq: ".result"
     isolation_method: "flags"
 
@@ -51,11 +44,11 @@ vendors:
     subcommand: "exec"
     prompt_flag: "none"
     output_format_flag: "--json"
-    isolation_flags: "-s read-only --skip-git-repo-check --ephemeral"
+    auto_approve_flag: "--full-auto"
     model_flag: "-m"
     default_model: "gpt-5.5"
     response_jq: ".response"
-    isolation_method: "flags"
+    isolation_method: "directory"
 
   qwen:
     command: qwen
@@ -78,6 +71,17 @@ vendors:
     output_format_flag: "--output-format"
     output_format: "json"
     auto_approve_flag: "--yolo"
+    model_flag: "--model"
+    default_model: "auto"
+    isolation_method: "directory"
+
+  # Kiro CLI headless: `kiro-cli chat --no-interactive --trust-all-tools [--model …] "<prompt>"`.
+  # Models: AWS Bedrock IDs (e.g. anthropic.claude-sonnet-4-5-20251001-v1:0).
+  # Use "auto" to let Kiro select the model based on its own configuration.
+  kiro:
+    command: kiro-cli
+    prompt_flag: none
+    auto_approve_flag: "--trust-all-tools"
     model_flag: "--model"
     default_model: "auto"
     isolation_method: "directory"

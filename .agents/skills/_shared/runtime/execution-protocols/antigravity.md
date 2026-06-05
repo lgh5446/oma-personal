@@ -1,12 +1,13 @@
 # Execution Protocol (Antigravity)
 
-Antigravity (Google) replaces the deprecated Gemini CLI as of 2026-05. Antigravity reuses the same `.gemini/agents/{name}.md` definitions for backwards compatibility but is invoked through the interactive `antigravity chat` panel.
-
-**Important**: Antigravity does **not** support headless JSON subprocess mode. `oma agent:spawn -m antigravity` is explicitly rejected. Use the oh-my-agent plugin staged under `~/.gemini/antigravity-cli/plugins/oh-my-agent/`, slash commands, or the `/agents` panel inside the chat session.
+When running as a CLI subagent (`agy -p` headless mode), follow this protocol for shared
+state coordination. **In headless mode your stdout is discarded by the spawner** — the only
+durable hand-off to the orchestrator is the result artifact written below. If you do not
+write it, the orchestrator reports your run as `crashed` even on success.
 
 ## MCP Memory Tools
 
-Same as the Gemini protocol — tool names are configurable via `mcp.json → memoryConfig.tools`:
+Tool names are configurable via `mcp_config.json → memoryConfig.tools`:
 - `[READ]` → default: `read_memory`
 - `[WRITE]` → default: `write_memory`
 - `[EDIT]` → default: `edit_memory`
@@ -14,6 +15,9 @@ Same as the Gemini protocol — tool names are configurable via `mcp.json → me
 - `[DELETE]` → default: `delete_memory`
 
 Memory base path is configurable via `memoryConfig.basePath` (default: `.serena/memories`).
+
+If Serena MCP memory tools are unavailable, fall back to writing the same files directly to
+`.serena/memories/` using your native file-write tool.
 
 ### Path Resolution (CRITICAL)
 
@@ -37,19 +41,26 @@ All result, progress, and state files MUST be written to the **project root** me
 ## On Completion
 
 - `[WRITE]("result-{agent-id}[-{sessionId}].md")` with final result including:
-  - Status: `completed` or `failed`
+  - A status line — see **Status line format** below (REQUIRED)
   - Summary of work done
   - Files created/modified
   - Acceptance criteria checklist
 
 ## On Failure
 
-- Still create `result-{agent-id}[-{sessionId}].md` with Status: `failed`
+- Still create `result-{agent-id}[-{sessionId}].md` with the status line set to `failed`
 - Include detailed error description and what remains incomplete
 
-## Antigravity-Specific Notes
+## Status line format (REQUIRED)
 
-- **Slash commands**: dispatch to a named agent via `/{agent-id}` inside the chat panel (e.g., `/backend-engineer`).
-- **`/agents` panel**: visual list of available subagents staged from `.gemini/agents/`.
-- **No `@` syntax** — that was a Gemini CLI feature.
-- **Coordination via memory**: same `.serena/memories/` polling pattern as Gemini and Claude. Orchestrators in other runtimes (Claude Code, Codex) can monitor your progress via the memory layer.
+The orchestrator parses the status with the regex `^## Status:\s*(\S+)`. The result file
+MUST contain a single line in exactly this shape — colon on the same line, plain word, no
+backticks, no quotes:
+
+```
+## Status: completed
+```
+
+Use `## Status: failed` on failure. Do NOT split it across lines (e.g. `## Status` then a
+separate ``` `completed` ``` line) — that fails to parse and a failed run would be silently
+misreported as completed.

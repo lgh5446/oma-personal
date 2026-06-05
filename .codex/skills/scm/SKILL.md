@@ -1,6 +1,7 @@
 ---
 name: scm
 description: SCM workflow for Git operations (branching/merge/conflict/worktree) plus Conventional Commit execution.
+disable-model-invocation: true
 ---
 <!-- oma:generated -->
 
