@@ -21,6 +21,10 @@ Before starting, determine your runtime environment by following `.agents/skills
 
 Steps 1-5 execute inline for all vendors. Step 6 (similar pattern scanning) may delegate to a `debug-investigator` subagent when the scan scope is broad.
 
+### L1 Decision Events
+
+Use the `oma_emit` helper documented in `.agents/skills/_shared/runtime/event-spec.md` before required L1 decision checkpoints. The helper wraps `oma state:emit`.
+
 ### Subagent Spawn Criteria
 
 Spawn `debug-investigator` when:
@@ -40,14 +44,13 @@ Include diagnosis results so far + scan scope in prompt.
 Request subagent execution via model-mediated subagent request.
 Include diagnosis results and scan scope. Results returned as JSON output.
 
-#### If Antigravity (Google) — replaces deprecated Gemini CLI
+#### If Gemini CLI
 
 ```bash
-oma agent:spawn debug "scan prompt with diagnosis context" {session_id} -w {workspace} -m antigravity
+oma agent:spawn debug "scan prompt with diagnosis context" {session_id} -w {workspace}
 ```
-OMA invokes `agy --print --dangerously-skip-permissions` headlessly to capture the response.
 
-#### If Gemini CLI (deprecated) or CLI Fallback
+#### If Antigravity or CLI Fallback
 
 ```bash
 oma agent:spawn debug "scan prompt with diagnosis context" {session_id} -w {workspace}
@@ -83,6 +86,13 @@ Identify the root cause, not just the symptom. Check:
 - Missing error handling
 - Wrong data types
 - Stale state
+
+When the root cause is confirmed, emit and verify the required diagnosis decision:
+
+```bash
+oma_emit "decision.made" '{"subject":"debug.root-cause","decision":"Treat the confirmed root cause as the basis for the minimal fix.","rationale":"The diagnosis traced the failure path and distinguished the root cause from symptoms."}'
+oma state:verify --workflow debug --checkpoint root-cause
+```
 
 ---
 

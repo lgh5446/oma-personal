@@ -1,5 +1,5 @@
 ---
-description: Automated CLI-based parallel agent execution that spawns subagents across Claude / Codex / Antigravity (Google), coordinates through MCP Memory, monitors progress, and runs verification
+description: Automated CLI-based parallel agent execution that spawns subagents via Gemini CLI, coordinates through MCP Memory, monitors progress, and runs verification
 ---
 
 # MANDATORY RULES: VIOLATION IS FORBIDDEN
@@ -28,6 +28,8 @@ The detected runtime vendor and each agent's target vendor determine how agents 
 1. Read `.agents/skills/oma-coordination/SKILL.md` and confirm Core Rules.
 2. Read `.agents/skills/_shared/core/context-loading.md` for resource loading strategy.
 3. Read `.agents/skills/_shared/runtime/memory-protocol.md` for memory protocol.
+4. Read `.agents/skills/_shared/runtime/event-spec.md` for L1 event protocol.
+5. Use the `oma_emit` helper documented in `.agents/skills/_shared/runtime/event-spec.md` for required L1 decisions. The helper wraps `oma state:emit`.
 
 ---
 
@@ -52,14 +54,14 @@ Look for a plan file:
 
    ```
    CLI 에이전트 매핑
-   ┌──────────┬─────────────┐
-   │ Agent    │ CLI         │
-   ├──────────┼─────────────┤
-   │ frontend │ codex       │
-   │ backend  │ codex       │
-   │ docs     │ antigravity │
-   │ pm       │ claude      │
-   └──────────┴─────────────┘
+   ┌──────────┬─────────┐
+   │ Agent    │ CLI     │
+   ├──────────┼─────────┤
+   │ frontend │ codex   │
+   │ backend  │ codex   │
+   │ mobile   │ claude  │
+   │ pm       │ claude  │
+   └──────────┴─────────┘
    ```
 
 3. Generate session ID (format: `session-YYYYMMDD-HHMMSS`).
@@ -71,6 +73,13 @@ Look for a plan file:
 ## Step 3: Spawn Agents by Priority Tier
 
 // turbo
+Before spawning agents, emit and verify the required fan-out decision:
+
+```bash
+oma_emit "decision.made" '{"subject":"orchestrate.fanout-strategy","decision":"Spawn agents by priority tier using the loaded plan.","rationale":"The plan is available and determines which agents run in parallel."}'
+oma state:verify --workflow orchestrate --checkpoint fanout-strategy
+```
+
 For each priority tier (P0 first, then P1, etc.):
 
 - Each agent gets: task description, API contracts, relevant context from `_shared/core/context-loading.md`.
@@ -112,25 +121,14 @@ Spawn native Codex custom agents using `.codex/agents/{agent}.toml` when availab
 Pass each agent its task description, API contracts, and relevant context.
 If native dispatch is not verified in the current runtime, fall back to `oma agent:spawn {agent_id} {prompt_file} {session_id} -w {workspace}`.
 
-### If Antigravity (Google) and target vendor is Antigravity
+### If Gemini CLI and target vendor is Gemini
 
-Antigravity replaces the deprecated Gemini CLI as of 2026-05. It reuses the `.gemini/agents/{agent}.md` definitions for compatibility but is invoked through the interactive `antigravity chat` panel with the oh-my-agent plugin (staged under `~/.gemini/antigravity-cli/plugins/oh-my-agent/`).
-
-**`oma agent:spawn -m antigravity` is explicitly rejected by the OMA CLI** (headless JSON subprocess mode is unsupported).
-
-Workaround: when the target vendor is Antigravity and you are not already inside `antigravity chat`, do **not** issue an `oma agent:spawn -m antigravity` call. Instead, report a clear instruction to the user: "Open `antigravity chat` and run `/{agent-id}` to dispatch this work."
-
-### If Gemini CLI (deprecated) and target vendor is Gemini
-
-Legacy path — prefer migrating the mapping to Antigravity. If still in use:
 Spawn native Gemini subagents using `.gemini/agents/{agent}.md` when available.
 If native dispatch is not verified in the current runtime, fall back to `oma agent:spawn {agent_id} {prompt_file} {session_id} -w {workspace}`.
 
 ### If target vendor differs from current runtime, or native dispatch is unavailable
 
 Spawn agents using `oma agent:spawn {agent_id} {prompt_file} {session_id} -w {workspace}` only (custom subagents not available).
-
-**Known issue (2026-05-22)**: On Windows, `oma agent:spawn -m codex` fails with "Failed to spawn process" (OMA's `vendors.codex.command` override is ignored). Until upstream fix lands, route codex-target work via `codex exec` directly or via Claude Code's native Agent tool if both runtime and target are Claude.
 
 ---
 
@@ -198,6 +196,13 @@ bash .agents/skills/oma-orchestrator/scripts/verify.sh {agent-type} {workspace}
 // turbo
 After all agents complete, use memory read tool to read all `result-{agent}-{sessionId}.md` files.
 Compile summary: completed tasks, failed tasks, files changed, remaining issues.
+
+Emit and verify the required QA verdict decision before the final report:
+
+```bash
+oma_emit "decision.made" '{"subject":"orchestrate.qa-verdict","decision":"Accept completed agents or record change requests.","rationale":"Agent verification results have been collected and classified."}'
+oma state:verify --workflow orchestrate --checkpoint qa-verdict
+```
 
 ---
 

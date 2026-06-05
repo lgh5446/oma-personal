@@ -20,6 +20,10 @@ description: Full QA review pipeline covering security audit (OWASP Top 10), per
 Before starting, determine your runtime environment by following `.agents/skills/_shared/core/vendor-detection.md`.
 The detected vendor determines how the QA agent is spawned (Step 7).
 
+### L1 Decision Events
+
+Use the `oma_emit` helper documented in `.agents/skills/_shared/runtime/event-spec.md` before required L1 decision checkpoints. The helper wraps `oma state:emit`.
+
 ---
 
 ## Step 1: Identify Review Scope
@@ -92,6 +96,13 @@ Compile all findings into a prioritized report:
 Each finding must include: `file:line`, description, and remediation code.
 Use memory write tool to record the final report.
 
+After severity classification is complete, emit and verify the required review decision:
+
+```bash
+oma_emit "decision.made" '{"subject":"review.severity-classification","decision":"Use the classified finding severities for the QA report and follow-up routing.","rationale":"Findings have been reviewed and assigned CRITICAL/HIGH/MEDIUM/LOW severity with remediation context."}'
+oma state:verify --workflow review --checkpoint severity-classification
+```
+
 ---
 
 ## Agent Delegation: Spawn QA Agent
@@ -105,7 +116,7 @@ Use the Agent tool to spawn subagent:
 ### If Codex CLI
 Request parallel subagent execution with the review scope and standards.
 
-### If Antigravity (Google) or Gemini CLI (deprecated) or CLI Fallback
+### If Gemini CLI or Antigravity or CLI Fallback
 ```bash
 oma agent:spawn qa-agent "Review files for security, performance, accessibility, and code quality. Follow .agents/skills/oma-qa/SKILL.md standards. Report as CRITICAL/HIGH/MEDIUM/LOW with file:line and remediation." session-id
 ```
@@ -127,7 +138,7 @@ When user wants fixes too, execute review then fix then re-review loop:
 ### If Codex CLI
      Request parallel subagent execution with the issues and fix instructions.
 
-### If Antigravity (Google) or Gemini CLI (deprecated) or CLI Fallback
+### If Gemini CLI or Antigravity or CLI Fallback
      ```bash
      oma agent:spawn backend "Fix issues: [issues]" session-id -w ./backend &
      oma agent:spawn frontend "Fix issues: [issues]" session-id -w ./frontend &

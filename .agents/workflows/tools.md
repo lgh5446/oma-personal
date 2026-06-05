@@ -17,7 +17,7 @@ description: Manage MCP tools with natural language commands to list, enable, an
 ## Step 1: Show Current Status
 
 1. Read `.agents/mcp.json` (project configuration)
-2. Read `~/.gemini/settings.json` if exists (shared by deprecated Gemini CLI and current Antigravity CLI — Antigravity reuses the `.gemini/` folder); optional
+2. Read `~/.gemini/settings.json` if exists (Gemini CLI global settings); optional
 3. Display status for each MCP server:
    - `available_tools: null` → "All enabled (no restrictions)"
    - `available_tools: [...]` → "N tools enabled" + list
