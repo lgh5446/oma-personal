@@ -26,3 +26,18 @@
 *.mp4 binary
 *.mp3 binary
 *.wasm binary
+
+# Document formats (binary) — relevant to prop-tech document processing.
+*.hwp binary
+*.hwpx binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# Local data stores (binary).
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
