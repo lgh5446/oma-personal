@@ -75,3 +75,5 @@ codex-audit-derived-auto/
 .agents/goals/ledger.jsonl
 .agents/goals/evidence/*
 !.agents/goals/evidence/.gitkeep
+# Claude Code local settings (machine-specific permissions + local creds; never commit)
+.claude/settings.local.json
