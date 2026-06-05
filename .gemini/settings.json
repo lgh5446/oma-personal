@@ -10,6 +10,12 @@
             "timeout": 5000
           },
           {
+            "name": "state-boundary",
+            "type": "command",
+            "command": "bun \"$GEMINI_PROJECT_DIR/.gemini/hooks/state-boundary.ts\"",
+            "timeout": 5000
+          },
+          {
             "name": "skill-injector",
             "type": "command",
             "command": "bun \"$GEMINI_PROJECT_DIR/.gemini/hooks/skill-injector.ts\"",
@@ -92,11 +98,22 @@
         "--context",
         "ide",
         "--project",
-        "."
+        ".",
+        "--open-web-dashboard",
+        "false"
       ],
       "env": {
         "SERENA_LOG_LEVEL": "info"
       }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--no-usage-statistics",
+        "--isolated"
+      ]
     }
   },
   "privacy": {

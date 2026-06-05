@@ -119,32 +119,33 @@ active_vendor: antigravity
 
 custom_presets:
   custom-triple-flagship:
-    description: "Stage 3 triple-vendor flagship preset for Claude strategy, Codex implementation, and Antigravity retrieval/docs."
+    description: "Optimized role mapping: Claude Opus 4.8 for orchestration/design/PM/debug, Codex gpt-5.5 for implementation/QA/data/infra, Antigravity Gemini 3.5 Flash for frontend/docs/retrieval."
     agent_defaults:
-      orchestrator:  { model: anthropic/claude-opus-4-7 }
-      architecture:  { model: anthropic/claude-opus-4-7 }
-      qa:            { model: anthropic/claude-opus-4-7 }
-      pm:            { model: anthropic/claude-opus-4-7 }
-      debug:         { model: anthropic/claude-opus-4-7 }
+      orchestrator:  { model: anthropic/claude-opus-4-8 }
+      architecture:  { model: anthropic/claude-opus-4-8 }
+      qa:            { model: openai/gpt-5.5, effort: high }
+      pm:            { model: anthropic/claude-opus-4-8 }
+      debug:         { model: anthropic/claude-opus-4-8 }
       backend:       { model: openai/gpt-5.5, effort: high }
-      frontend:      { model: openai/gpt-5.5, effort: high }
-      mobile:        { model: openai/gpt-5.5, effort: medium }
+      frontend:      { model: google/gemini-3.5-flash }
+      mobile:        { model: openai/gpt-5.5, effort: high }
       db:            { model: openai/gpt-5.5, effort: high }
-      tf-infra:      { model: openai/gpt-5.5, effort: medium }
+      tf-infra:      { model: openai/gpt-5.5, effort: high }
       docs:          { model: google/gemini-3.5-flash }
       retrieval:     { model: google/gemini-3.5-flash }
 
 agents:
-  orchestrator:  { model: anthropic/claude-opus-4-7 }
-  architecture:  { model: anthropic/claude-opus-4-7 }
-  qa:            { model: anthropic/claude-opus-4-7 }
-  pm:            { model: anthropic/claude-opus-4-7 }
-  debug:         { model: anthropic/claude-opus-4-7 }
+  orchestrator:  { model: anthropic/claude-opus-4-8 }
+  architecture:  { model: anthropic/claude-opus-4-8 }
+  qa:            { model: openai/gpt-5.5, effort: high }
+  pm:            { model: anthropic/claude-opus-4-8 }
+  debug:         { model: anthropic/claude-opus-4-8 }
   backend:       { model: openai/gpt-5.5, effort: high }
-  frontend:      { model: openai/gpt-5.5, effort: high }
-  mobile:        { model: openai/gpt-5.5, effort: medium }
+  frontend:      { model: google/gemini-3.5-flash }
+  mobile:        { model: openai/gpt-5.5, effort: high }
   db:            { model: openai/gpt-5.5, effort: high }
-  tf-infra:      { model: openai/gpt-5.5, effort: medium }
+  tf-infra:      { model: openai/gpt-5.5, effort: high }
+  docs:          { model: google/gemini-3.5-flash }
   # `retrieval` role maps to the `oma-search` skill (intent-based search router
   # with trust labels). Resolution: agents.retrieval → google/gemini-3.5-flash
   # → invoked via antigravity headless `agy --print --dangerously-skip-permissions`.
@@ -231,20 +232,29 @@ session:
 #   3. preset.orchestrator    — fallback when an agent is missing from the preset
 # ─────────────────────────────────────────────────────────────────────────────
 vendors:
+  claude:
+    command: claude
+    prompt_flag: "-p"
+    output_format_flag: "--output-format"
+    output_format: "json"
+    auto_approve_flag: "--dangerously-skip-permissions"
+    model_flag: "--model"
+    default_model: "sonnet"
+    response_jq: ".result"
+    isolation_method: "flags"
   codex:
-    # KNOWN ISSUE (2026-05-22): On Windows, `oma agent:spawn -m codex` fails
-    # with "Failed to spawn process". The `vendors.codex.command` override
-    # below is IGNORED by the compiled OMA binary (tested with codex.cmd
-    # and absolute path — both failed). See
-    # docs/test-report/upstream-issues.md for the upstream report.
-    # Workaround: until OMA fixes the dispatcher, use Codex CLI directly
-    # (`codex exec`) outside of oma agent:spawn.
     command: codex
     subcommand: exec
     prompt_flag: none
-    isolation_flags: "-s read-only --skip-git-repo-check --ephemeral"
+    output_format_flag: "--json"
+    isolation_flags: "--skip-git-repo-check --ephemeral"
+    auto_approve_flag: "--dangerously-bypass-approvals-and-sandbox"
+    model_flag: "-m"
+    default_model: "gpt-5.5"
+    response_jq: ".response"
+    isolation_method: "flags"
   antigravity:
     command: agy
     prompt_flag: --prompt
     auto_approve_flag: --dangerously-skip-permissions
-
+    isolation_method: "flags"

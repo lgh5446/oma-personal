@@ -86,19 +86,19 @@ runtime_profiles:
       retrieval:     { model: "google/gemini-3.1-flash-lite" }
 
   antigravity:
-    description: "Antigravity CLI — Gemini 3.5 Flash via canonical google model slugs"
+    description: "Antigravity CLI (agy) — nominal Gemini 3.1 Pro for impl/architecture, Gemini 3.5 Flash for orchestration & retrieval (agy 1.0 has no --model flag; model is config-driven)"
     agent_defaults:
-      orchestrator:  { model: "google/gemini-3.5-flash" }
-      architecture:  { model: "google/gemini-3.5-flash" }
-      qa:            { model: "google/gemini-3.5-flash" }
-      pm:            { model: "google/gemini-3.5-flash" }
-      backend:       { model: "google/gemini-3.5-flash" }
-      frontend:      { model: "google/gemini-3.5-flash" }
-      mobile:        { model: "google/gemini-3.5-flash" }
-      db:            { model: "google/gemini-3.5-flash" }
-      debug:         { model: "google/gemini-3.5-flash" }
-      tf-infra:      { model: "google/gemini-3.5-flash" }
-      retrieval:     { model: "google/gemini-3.5-flash" }
+      orchestrator:  { model: "antigravity/gemini-3.5-flash" }
+      architecture:  { model: "antigravity/gemini-3.1-pro" }
+      qa:            { model: "antigravity/gemini-3.1-pro" }
+      pm:            { model: "antigravity/gemini-3.5-flash" }
+      backend:       { model: "antigravity/gemini-3.1-pro" }
+      frontend:      { model: "antigravity/gemini-3.1-pro" }
+      mobile:        { model: "antigravity/gemini-3.1-pro" }
+      db:            { model: "antigravity/gemini-3.1-pro" }
+      debug:         { model: "antigravity/gemini-3.1-pro" }
+      tf-infra:      { model: "antigravity/gemini-3.1-pro" }
+      retrieval:     { model: "antigravity/gemini-3.5-flash" }
 
   cursor:
     description: "Cursor — Cursor Pro / Pro Student"

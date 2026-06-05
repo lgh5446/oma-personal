@@ -1,4 +1,5 @@
 model_reasoning_effort = "high"
+notification_condition = "always"
 
 [features]
 hooks = true
@@ -7,10 +8,24 @@ child_agents_md = true
 
 [mcp_servers.serena]
 command = "serena"
-args = [ "start-mcp-server", "--context", "codex", "--project", "." ]
+args = [ "start-mcp-server", "--context", "codex", "--project", ".", "--open-web-dashboard", "false" ]
+startup_timeout_sec = 90
 
 [mcp_servers.serena.env]
 SERENA_LOG_LEVEL = "info"
+
+[mcp_servers.serena.tools.write_memory]
+approval_mode = "approve"
+
+[mcp_servers.korean-law]
+command = "korean-law-mcp"
+
+[mcp_servers."민법 및 민사특별법"]
+url = "https://opencrab.sh/api/mcp/ocm_LciIsc0gxuvi1LYMo2zKt0RTtqA1tS8Fdngsj24sv1s"
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = [ "-y", "chrome-devtools-mcp@latest", "--no-usage-statistics", "--isolated" ]
 
 [analytics]
 enabled = false

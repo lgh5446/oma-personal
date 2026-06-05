@@ -4,22 +4,15 @@ REM Forwards all args to Git Bash; auto-detects bash.exe location.
 
 setlocal
 
-set BASH_PATHS=^
-"C:\Program Files\Git\bin\bash.exe" ^
-"C:\Program Files (x86)\Git\bin\bash.exe" ^
-"%LOCALAPPDATA%\Programs\Git\bin\bash.exe"
-
 set BASH_EXE=
-for %%P in (%BASH_PATHS%) do (
-  if exist %%P (
-    set BASH_EXE=%%P
-    goto :found
-  )
+if exist "%ProgramFiles%\Git\bin\bash.exe" set "BASH_EXE=%ProgramFiles%\Git\bin\bash.exe"
+if not defined BASH_EXE if exist "%ProgramFiles(x86)%\Git\bin\bash.exe" set "BASH_EXE=%ProgramFiles(x86)%\Git\bin\bash.exe"
+if not defined BASH_EXE if exist "%LOCALAPPDATA%\Programs\Git\bin\bash.exe" set "BASH_EXE=%LOCALAPPDATA%\Programs\Git\bin\bash.exe"
+
+if not defined BASH_EXE (
+  echo [err] Git Bash not found. Install Git for Windows: https://git-scm.com/download/win
+  exit /b 1
 )
 
-echo [err] Git Bash not found. Install Git for Windows: https://git-scm.com/download/win
-exit /b 1
-
-:found
-%BASH_EXE% -c "bash '%~dp0oma-upgrade.sh' %*"
+"%BASH_EXE%" "%~dp0oma-upgrade.sh" %*
 exit /b %ERRORLEVEL%
