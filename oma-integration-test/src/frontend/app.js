@@ -19,11 +19,22 @@ function renderTodos() {
   todos.forEach(todo => {
     const li = document.createElement('li');
     li.className = todo.done ? 'done' : '';
-    li.innerHTML = `
-      <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${todo.id})">
-      <span>${todo.title}</span>
-      <button class="delete-btn" onclick="deleteTodo(${todo.id})">삭제</button>
-    `;
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = Boolean(todo.done);
+    checkbox.addEventListener('change', () => toggleTodo(todo.id));
+
+    const title = document.createElement('span');
+    title.textContent = todo.title;
+
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'delete-btn';
+    deleteButton.type = 'button';
+    deleteButton.textContent = '삭제';
+    deleteButton.addEventListener('click', () => deleteTodo(todo.id));
+
+    li.append(checkbox, title, deleteButton);
     list.appendChild(li);
   });
   totalCount.textContent = `총 ${todos.length}개`;

@@ -34,6 +34,17 @@ function parseTodoId(input) {
   return id;
 }
 
+function requireAdminToken(req, res, next) {
+  const expectedToken = process.env.TODO_ADMIN_TOKEN;
+  if (!expectedToken) return next();
+
+  if (req.get('x-api-key') !== expectedToken) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  return next();
+}
+
 // GET all todos
 router.get('/todos', (req, res) => {
   res.json(todos);
@@ -67,8 +78,7 @@ router.patch('/todos/:id/toggle', (req, res) => {
 });
 
 // DELETE todo
-// BUG: No authorization check
-router.delete('/todos/:id', (req, res) => {
+router.delete('/todos/:id', requireAdminToken, (req, res) => {
   const id = parseTodoId(req.params.id);
   if (!id) return res.status(400).json({ error: 'Invalid todo id' });
 
