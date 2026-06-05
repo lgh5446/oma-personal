@@ -2825,6 +2825,29 @@
           "会议转录"
         ]
       }
+    },
+    "oma-goal": {
+      "keywords": {
+        "*": ["goal ledger", "goals.json", "ledger.jsonl"],
+        "en": [
+          "goal checkpoint",
+          "durable goals",
+          "evidence ledger",
+          "goal verification",
+          "track completion criteria"
+        ],
+        "ko": [
+          "목표 장부",
+          "목표 원장",
+          "체크포인트",
+          "목표별 검증",
+          "완료 기준 추적",
+          "증거 남겨",
+          "목표 추적"
+        ],
+        "ja": ["目標台帳", "チェックポイント"],
+        "zh": ["目标账本", "检查点"]
+      }
     }
   },
   "informationalPatterns": {
