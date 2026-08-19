@@ -132,7 +132,7 @@ When native runtime dispatch is available, prefer the runtime-specific native pa
 Current native executor paths:
 - Claude Code: `claude --agent <agent>`
 - Codex CLI: `codex exec "@agent ..."` using `.codex/agents/*.toml`
-- Gemini CLI: `gemini -p "@agent ..."` using `.gemini/agents/*.md`
+- Gemini CLI: `gemini -p "@agent ..."` using `.gemini/agents/*.md` (deprecated — vendor decommissioned; do not route here)
 
 Vendor-specific execution protocols are injected automatically for fallback CLI runs.
 
