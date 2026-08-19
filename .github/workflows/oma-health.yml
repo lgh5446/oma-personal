@@ -48,7 +48,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # promptfoo@latest requires Node >=22.22.0; pinning 20 fails at startup.
+          node-version: '22'
 
       - name: Install promptfoo
         run: npm install -g promptfoo@latest
